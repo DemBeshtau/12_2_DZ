@@ -1,0 +1,146 @@
+[vagrant@ns01 ~]$ sudo -i
+
+[root@ns01 ~]# setenforce 0            
+ 
+[root@ns01 ~]# getenforce
+Enforcing
+
+[root@ns01 ~]# setenforce 0
+
+[root@ns01 ~]# getenforce
+Permissive
+
+[root@ns01 ~]# echo > /var/log/audit/audit.log 
+
+[root@ns01 ~]# cat /var/log/audit/audit.log 
+
+[root@ns01 ~]# audit2why < /var/log/audit/audit.log
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { create } for  pid=879 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+
+	Was caused by:
+		Missing type enforcement (TE) allow rule.
+
+		You can use audit2allow to generate a loadable module to allow this access.
+
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { write } for  pid=879 comm="isc-worker0000" path="/etc/named/dynamic/named.ddns.lab.view1.jnl" dev="dm-0" ino=100834444 scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+
+	Was caused by:
+		Missing type enforcement (TE) allow rule.
+
+		You can use audit2allow to generate a loadable module to allow this access.
+
+[root@ns01 ~]# sealert -a /var/log/audit/audit.log | grep ""
+
+found 1 alerts in /var/log/audit/audit.log
+--------------------------------------------------------------------------------
+
+SELinux запрещает /usr/sbin/named доступ create к файл named.ddns.lab.view1.jnl.
+
+*****  Модуль catchall_labels предлагает (точность 83.8)  ********************
+
+Если вы хотите разрешить named иметь create доступ к named.ddns.lab.view1.jnl $TARGET_УЧЕБНЫЙ КЛАСС
+То необходимо изменить метку на named.ddns.lab.view1.jnl
+Сделать
+# semanage fcontext -a -t FILE_TYPE 'named.ddns.lab.view1.jnl'
+где FILE_TYPE может принимать значения: dnssec_trigger_var_run_t, ipa_var_lib_t, krb5_host_rcache_t, krb5_keytab_t, named_cache_t, named_log_t, named_tmp_t, named_var_run_t, named_zone_t. 
+Затем выполните: 
+restorecon -v 'named.ddns.lab.view1.jnl'
+
+
+*****  Модуль catchall предлагает (точность 17.1)  ***************************
+
+Если вы считаете, что named должно быть разрешено create доступ к named.ddns.lab.view1.jnl file по умолчанию.
+То рекомендуется создать отчет об ошибке.
+Чтобы разрешить доступ, можно создать локальный модуль политики.
+Сделать
+allow this access for now by executing:
+# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000
+# semodule -i my-iscworker0000.pp
+
+
+Дополнительные сведения:
+Исходный контекст             system_u:system_r:named_t:s0
+Целевой контекст              system_u:object_r:etc_t:s0
+Целевые объекты               named.ddns.lab.view1.jnl [ file ]
+Источник                      isc-worker0000
+Путь к источнику              /usr/sbin/named
+Порт                          <Unknown>
+Узел                          <Unknown>
+Исходные пакеты RPM           bind-9.11.4-26.P2.el7_9.15.x86_64
+Целевые пакеты RPM            
+Пакет регламента              selinux-policy-3.13.1-192.el7_5.3.noarch
+SELinux активен               True
+Тип регламента                targeted
+Режим                         Permissive
+Имя узла                      ns01
+Платформа                     Linux ns01 3.10.0-862.2.3.el7.x86_64 #1 SMP Wed
+                              May 9 18:05:47 UTC 2018 x86_64 x86_64
+Счетчик уведомлений           1
+Впервые обнаружено            2024-06-05 18:36:28 UTC
+В последний раз               2024-06-05 18:36:28 UTC
+Локальный ID                  f4cca6b2-1761-439a-9392-f25ce2173afb
+
+Построчный вывод сообщений аудита
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { create } for  pid=879 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+
+
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { write } for  pid=879 comm="isc-worker0000" path="/etc/named/dynamic/named.ddns.lab.view1.jnl" dev="dm-0" ino=100834444 scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+
+
+type=SYSCALL msg=audit(1717612588.365:752): arch=x86_64 syscall=open success=yes exit=ENXIO a0=7f8c946d4050 a1=241 a2=1b6 a3=24 items=0 ppid=1 pid=879 auid=4294967295 uid=25 gid=25 euid=25 suid=25 fsuid=25 egid=25 sgid=25 fsgid=25 tty=(none) ses=4294967295 comm=isc-worker0000 exe=/usr/sbin/named subj=system_u:system_r:named_t:s0 key=(null)
+
+Hash: isc-worker0000,named_t,etc_t,file,create
+
+[root@ns01 ~]# cat /var/log/audit/audit.log 
+
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { create } for  pid=879 comm="isc-worker0000" name="named.ddns.lab.view1.jnl" scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+type=AVC msg=audit(1717612588.365:752): avc:  denied  { write } for  pid=879 comm="isc-worker0000" path="/etc/named/dynamic/named.ddns.lab.view1.jnl" dev="dm-0" ino=100834444 scontext=system_u:system_r:named_t:s0 tcontext=system_u:object_r:etc_t:s0 tclass=file
+type=SYSCALL msg=audit(1717612588.365:752): arch=c000003e syscall=2 success=yes exit=6 a0=7f8c946d4050 a1=241 a2=1b6 a3=24 items=0 ppid=1 pid=879 auid=4294967295 uid=25 gid=25 euid=25 suid=25 fsuid=25 egid=25 sgid=25 fsgid=25 tty=(none) ses=4294967295 comm="isc-worker0000" exe="/usr/sbin/named" subj=system_u:system_r:named_t:s0 key=(null)
+type=PROCTITLE msg=audit(1717612588.365:752): proctitle=2F7573722F7362696E2F6E616D6564002D75006E616D6564002D63002F6574632F6E616D65642E636F6E66
+]0;root@ns01:~[root@ns01 ~]# ausearch -c 'isc-worker0000' --raw | audit2allow -M my-iscworker0000
+******************** IMPORTANT ***********************
+To make this policy package active, execute:
+
+semodule -i my-iscworker0000.pp
+
+[root@ns01 ~]# semodule -i my-iscworker0000.pp
+
+[root@ns01 ~]# setenforce 1
+
+[root@ns01 ~]# getenforce
+Enforcing
+
+[root@ns01 ~]# ll
+total 24
+-rw-------. 1 root root 5763 May 12  2018 anaconda-ks.cfg
+-rw-r--r--. 1 root root  973 Jun  5 18:49 my-iscworker0000.pp
+-rw-r--r--. 1 root root  251 Jun  5 18:49 my-iscworker0000.te
+-rw-------. 1 root root 5432 May 12  2018 original-ks.cfg
+
+[root@ns01 ~]# cat my-iscworker0000.te
+
+module my-iscworker0000 1.0;
+
+require {
+	type etc_t;
+	type named_t;
+	class file { create rename unlink write };
+}
+
+#============= named_t ==============
+
+#!!!! WARNING: 'etc_t' is a base type.
+allow named_t etc_t:file { create rename unlink write };
+
+[root@ns01 ~]# reboot
+
+dem@calculate ~/vagrant/12_2_DZ $ vagrant ssh ns01
+
+Last login: Wed Jun  5 17:51:21 2024 from 10.0.2.2
+
+[vagrant@ns01 ~]$ exit
+logout
+dem@calculate ~/vagrant/12_2_DZ $ exit
+
+exit
+
